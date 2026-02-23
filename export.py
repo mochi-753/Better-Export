@@ -19,14 +19,14 @@ def get_file_hash(filepath: Path, algorithm: str) -> str:
     return hash_func.hexdigest().lower()
 
 def main():
-    parser = argparse.ArgumentParser(description="Modrinth index JSON generator")
-    parser.add_argument("--base-dir", "-b", type=str, default=".", help="Base directory")
+    parser = argparse.ArgumentParser(description="Modrinth pack JSON generator (Prism Launcher only)")
+    parser.add_argument("--target-dir", type=str, default=".", help="Minecraft directory")
     args = parser.parse_args()
 
-    base_dir = Path(args.base_dir)
-    mods_dir = base_dir / "mods"
+    target_dir = Path(args.target_dir)
+    mods_dir = target_dir / "mods"
     index_dir = mods_dir / ".index"
-    output_path = base_dir / "modrinth.index.json"
+    output_path = target_dir / "modrinth.index.json"
 
     if not index_dir.exists() or not index_dir.is_dir():
         print(f"Error: インデックスディレクトリが見つかりません: {index_dir}", file=sys.stderr)
@@ -54,16 +54,16 @@ def main():
                 print(f"Warning: JARファイルが見つかりません: {filename}")
                 continue
 
-            print(f"解析中: {filename}")
+            print(f"処理中: {filename}")
             
             sha1 = get_file_hash(jar_path, "sha1")
             sha512 = get_file_hash(jar_path, "sha512")
             size = jar_path.stat().st_size
 
             downloads = []
-            if mode == "url" and url:
+            if mode == "url" and url: # GitHub, Modrinth, etc.
                 downloads.append(url)
-            elif mode == "metadata:curseforge" and file_id:
+            elif mode == "metadata:curseforge" and file_id: # CurseForge
                 fid = int(file_id)
                 p1 = fid // 1000
                 p2 = f"{fid % 1000:03d}"
@@ -80,21 +80,29 @@ def main():
             })
 
         except Exception as e:
-            print(f"Error: [{toml_path.name}] の解析中にエラーが発生しました: {e}", file=sys.stderr)
+            print(f"Error: [{toml_path.name}] を処理中にエラーが発生しました: {e}", file=sys.stderr)
 
     if not files_array:
         print("Warning: 出力対象のファイルがありませんでした。")
         return
 
     try:
-        output_data = {"files": files_array}
+        files_data = {
+            "formatVersion": 1,
+            "game": "minecraft",
+            "versionId": "1.0.0",
+            "name": "Modpack name",
+            "summary": "Modpack description",
+            "files": files_array,
+            "dependencies": {}
+        }
 
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(output_data, f, indent=4, ensure_ascii=False)
+            json.dump(files_data, f, indent=4, ensure_ascii=False)
 
         print(f"\n\033[92m完了 {output_path} を作成しました。\033[0m")
     except Exception as e:
-        print(f"Error: JSON保存失敗: {e}", file=sys.stderr)
+        print(f"Error: JSONの保存に失敗: {e}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
