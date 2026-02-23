@@ -43,7 +43,9 @@ def main():
             filename = data.get("filename")
             mode = data["download"].get("mode", "")
             url = data["download"].get("url", "")
-            file_id = data["update"]["curseforge"].get("file-id")
+ 
+            if "curseforge" in data.get("update", {}):
+                file_id = data.get("update", {}).get("curseforge", {}).get("file-id")
 
             if not filename:
                 print(f"Warning: [{toml_path.name}] 'filename' が見つかりません。")
